@@ -2,27 +2,37 @@ package main
 
 import (
 	"bytes"
+	"errors"
 	"image/png"
 	"testing"
 )
 
-func TestGenerateQRCodeReturnsValue(t *testing.T) {
-	result := GenerateQRCode("555-2368")
-
-	if result == nil {
-		t.Errorf("Generated QRCode is nil")
-	}
-	if len(result) == 0 {
-		t.Errorf("Generated QRCode has no data")
-	}
-}
-
 func TestGenerateQRCodeGeneratesPNG(t *testing.T) {
-	result := GenerateQRCode("555-2368")
-	buffer := bytes.NewBuffer(result)
+	buffer := new(bytes.Buffer)
+	GenerateQRCode(buffer, "555-2368")
+
+	if buffer.Len() == 0 {
+		t.Errorf("No QRCode generated")
+	}
+
 	_, err := png.Decode(buffer)
 
 	if err != nil {
-		t.Errorf("Generated QRCode not a PNg: %s", err)
+		t.Errorf("Generated QRCode is not a PNG: %s", err)
+	}
+}
+
+type ErrorWriter struct{}
+
+func (e *ErrorWriter) Write(b []byte) (int, error) {
+	return 0, errors.New("Expected error")
+}
+
+func TestGenerateQRCodePropagatesErrors(t *testing.T) {
+	w := new(ErrorWriter)
+	err := GenerateQRCode(w, "555-2358")
+
+	if err == nil || err.Error() != "Expected error" {
+		t.Errorf("Error not propagated correctly, got %v", err)
 	}
 }
